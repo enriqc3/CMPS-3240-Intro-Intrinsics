@@ -19,7 +19,7 @@ unopt_dgmm.o: unopt_dgmm.c
 	$(CC) $(CFLAGS) -c unopt_dgmm.c
 
 avx_dgmm: avx_dgmm.o
-	$(CC) $(CFLAGS) -o $(UNOPTOUT) avx_dgmm.o
+	$(CC) $(CFLAGS) -o $(AVXOUT) avx_dgmm.o
 
 avx_dgmm.o: avx_dgmm.c
 	$(CC) $(CFLAGS) -c avx_dgmm.c
