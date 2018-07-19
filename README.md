@@ -126,4 +126,73 @@ Now consider ```avx_dgmm.c```. The first thing to notice is:
 #include <immintrin.h>
 ```
 
-This header file includes the compiler intrinsics for the AVX instruction set. The text calls for ```#include <x86intrin.h>``` because it is written for Windows. If on Linux, use the above.
+This header file includes the compiler intrinsics for the AVX instruction set. The text calls for ```#include <x86intrin.h>``` because it is written for Windows. If on Linux, use the above. Consider the following code:
+
+```c
+void dgemm_avx (int n, double* A, double* B, double* C ) {
+   for ( int i = 0; i < n; i+=4) {
+      for ( int j = 0; j < n; j++ ) {
+         //double cij = C[ i + j * n ];
+          //replaced with
+         __m256d cij = _mm256_loadu_pd(C + i + j * n);
+
+         // Below is carries out cij += A[i][k] * B[k][j]
+         for ( int k = 0; k < n; k++) {
+             //cij += A[ i + k * n ] * B[ k + j * n ];
+             //replaced with
+             cij = _mm256_add_pd(
+                 cij,
+                _mm256_mul_pd(
+                    _mm256_loadu_pd(A + i + k * n),
+                    _mm256_broadcast_sd(B + k + j * n)
+                )
+            );
+         }
+         //C[ i + j * n ] = cij;
+         //replaced with
+        _mm256_storeu_pd(&C[ i + j * n ], cij);         
+      }
+   }
+}
+```
+
+```__m256d cij``` creates a variable ```cij``` and associates it with a 256-bit double precision floating point number. ```_mm256_loadu_pd(.)``` dereferences ```C[ i + j * n ]``` and stores the result in ```cij```. ```_mm256_add_pd(cij,.)``` takes the place of ```cij +=...``` in the unoptimized code. ```_mm256_loadu_pd(.)``` loads four successive values, whereas ```_mm256_broadcast_sd(.)``` repeats the same value into many positions of the oversized register. Admittedly, this is hard to read, so you may want to just write out a four by four multiplication by hand to ensure that all the terms are there after fully expanding everything. Note that one windows, you would use ```_mm256_load_pd(.)``` in place of ```_mm256_loadu_pd(.)```. The same goes for ```store```. Go ahead and compile and time the code:
+
+```
+make avx_dgmm
+time ./avx_dgmm.out 1024
+```
+
+I got the following times:
+
+```
+Running matrix multiplication of size 1024 x 1024
+real	0m2.834s
+user	0m2.812s
+sys	0m0.020s
+```
+
+So there is nearly a two-times improvement when using AVX instructions.
+
+## Part 2 - Implement DAXPY with and without AVX
+
+In part 2 we will use a different operation, double-precision constant times a vector plus a vector (DAXPY):
+
+D = a * X + Y
+
+Where D, X and Y are vectors (not matrixes this time) of the same size, and a is a scalar. The pseudo-code looks like so:
+
+```
+for i from 0 to length of the vectors 
+   d[i] <- a * x[i] + y[i] 
+endfor
+```
+Implement an unoptimized version of DAXY first, then use AVX intrinsics to speed it up. Show the instructor the improvement. The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. The compiler might automatically unroll the loop. The Makefile already does this, but make sure you're using the unoptimized flag for this part of the lab, -O0 (capital O number 0).
+
+### Discussion questions
+
+Include responses to the following questions in your lab report:
+
+1. If you're using 256-bit sized AVX registers to hold 64-bit sized floating point numbers, what will happen to the DGMM code if N is not a multiple of 4.
+2. What factor improvement did you achieve? Does this make sense? E.g., if using 256-bit sized AVX registers to hold 64-bit sized floating point numbers one would think that there should be a four fold improvement. What factors are preventing this?
+
