@@ -12,6 +12,7 @@ not support AVX instructions.
 ## Prerequisities
 
 * Knowledge of matrix multiplication and vector element-wise multiplication
+* Knowlege of how a 2-D array can be stored and indexed as a 1-D array
 * Instruction-level parallelism
 * x86 intrinsics (Do the prelab)
 
@@ -76,3 +77,39 @@ For a full list of AVX instructions see:
 # Approach
 
 This lab consists of two parts: (1) Run the avx_dgemm.c and avx_unopt.c code and see how much faster it is with AVX. (2) Apply what you've learned with part 1 to the DAXPY operation.
+
+## Part 1 - Understand some AVX instructions with DGMM
+
+DGMM stands for double precision generic matrix multiplication. I will not go into a matrix multiplication here, you should be familiar with it. Suffice to say when multiplying two matrixes together, there are many, *many* addition operations. ```unopt_dgmm.c``` contains C code to multiply two matrixes together. The matrixes are initialized dynamically on the heap using ```malloc```, and the size of the square matrixes is given as a command line argument. Consider the following code, which was taken from the  Patterson and Hennesey textbook:
+
+```c
+void dgemm (int n, double* A, double* B, double* C ) {
+   for ( int i = 0; i < n; i++ ) {
+      for ( int j = 0; j < n; j++ ) {
+         double cij = C[ i + j * n ];
+         // cij += A[i][k] * B[k][j]
+         for ( int k = 0; k < n; k++ )
+            cij += A[ i + k * n ] * B[ k + j * n ];
+
+         C[ i + j * n ] = cij;
+      }
+   }
+}
+```
+
+This code carries out the matrix multiplication of matrixes A and B, and stores the result in C. The cost of the matrix multiplication is actually O(n^3). If you compile it, and run/time it for yourself:
+
+```
+make unopt_dgmm
+time ./unopt_dgmm.out 1024
+```
+you should get something along the lines of:
+
+```
+Running matrix multiplication of size 1024 x 1024
+real	0m5.912s
+user	0m5.900s
+sys	0m0.008s
+```
+
+Even on the beefy odin server it takes almost six seconds to multiply two 1024 x 1024 sized matrixes.
