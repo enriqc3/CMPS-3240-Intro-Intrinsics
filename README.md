@@ -7,12 +7,51 @@ CMPS 3240 Computer Architecture: Lab on subword parallelism
 1. The x86 labs from hereon out assume you are using the ECE/CS departments odin server. As it turns out, good old Sleipnir does 
 not support AVX instructions. 
 2. AVX instruction set: We will be using the AVX instruction set that was released with Sandy bridge processors and Bulldozer processors. When using your own machine, please check that you have this.
+3. Linux. The x86 instruction calls and header names are different between Linux and Windows.
 
 ## Prerequisities
 
 * Knowledge of matrix multiplication and vector element-wise multiplication
 * Instruction-level parallelism
 * x86 intrinsics (Do the prelab)
+
+### Verify AVX instruction set
+
+Skip this section if you are on odin. hello_avx.c has been provided to test if the machine you're using has the AVX instruction set. It does this by attempting to run an AVX instruction. This code will attempt to initialize then subtract two 256-bit AVX registers from each other. The following lines:
+
+```c
+/* Initialize the two argument vectors */
+__m256 evens = _mm256_set_ps(2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0);
+__m256 odds = _mm256_set_ps(1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0);
+```
+
+Initialize two 256-bit AVX registers by partitioning them into 8 32-bit floating point values. Note that 256/32 is 8. Also note that ```evens``` is less than ```odds``` by one, so subtrating the two should result in a vector of ones. This code:
+
+```c
+/* Compute the difference between the two vectors */
+__m256 result = _mm256_sub_ps(evens, odds);
+```
+
+Carries out the subtraction. Compile `hello_avx` and run it from the terminal like so:
+
+```
+make hello_avx
+./hello.out
+```
+
+If, after running `./hello.out` you get the error:
+
+```
+Illegal instruction (core dumped)
+```
+
+your processor does not have AVX. There is nothing that can be done. Please use odin instead. If it works, you should get:
+
+```
+1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000
+```
+
+and you're good to go.
 
 ## Objectives
 
