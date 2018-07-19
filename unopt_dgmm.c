@@ -6,15 +6,14 @@
 void dgemm( int n, double* A, double* B, double* C );
 void initRandMat( int m, double* A );
 
-
 int main( int arg, char *argv[] ) {
    if( arg != 2 ) {
-     printf( "Usage: ./dgmm N ... where N is the length of one size of the matrix\n"  );
+     printf( "Usage: ./unopt_dgmm.out N ... where N is the length of one size of the matrix\n"  );
      return 0;
    }
 
    const int N = atoi( argv[1] );    
-   // Parameter for one side of the matrix
+
    printf( "Running matrix multiplication of size %d x %d", N, N );
 
    srand( time( 0 ) );                                        // Seed random
