@@ -1,6 +1,6 @@
 # CMPS-3240-Subword-Parallelism
 
-CMPS 3240 Computer Architecture: Lab on subword parallelism
+CMPS 3240 Computer Architecture: Subword parallelism in x86-64
 
 ## Requirements
 
