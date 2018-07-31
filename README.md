@@ -136,7 +136,7 @@ void dgemm_avx (int n, double* A, double* B, double* C ) {
           //replaced with
          __m256d cij = _mm256_loadu_pd(C + i + j * n);
 
-         // Below is carries out cij += A[i][k] * B[k][j]
+         // Below, carries out cij += A[i][k] * B[k][j]
          for ( int k = 0; k < n; k++) {
              //cij += A[ i + k * n ] * B[ k + j * n ];
              //replaced with
@@ -156,7 +156,7 @@ void dgemm_avx (int n, double* A, double* B, double* C ) {
 }
 ```
 
-```__m256d cij``` creates a variable ```cij``` and associates it with a 256-bit double precision floating point number. ```_mm256_loadu_pd(.)``` dereferences ```C[ i + j * n ]``` and stores the result in ```cij```. ```_mm256_add_pd(cij,.)``` takes the place of ```cij +=...``` in the unoptimized code. ```_mm256_loadu_pd(.)``` loads four successive values, whereas ```_mm256_broadcast_sd(.)``` repeats the same value into many positions of the oversized register. Admittedly, this is hard to read, so you may want to just write out a four by four multiplication by hand to ensure that all the terms are there after fully expanding everything. Note that one windows, you would use ```_mm256_load_pd(.)``` in place of ```_mm256_loadu_pd(.)```. The same goes for ```store```. Go ahead and compile and time the code:
+```__m256d cij``` creates a variable ```cij``` and associates it with a 256-bit double precision floating point number. ```_mm256_loadu_pd(.)``` dereferences ```C[ i + j * n ]``` and stores the result in ```cij```. ```_mm256_add_pd(cij,.)``` takes the place of ```cij +=...``` in the unoptimized code. ```_mm256_loadu_pd(.)``` loads four successive values, whereas ```_mm256_broadcast_sd(.)``` repeats the same value into many positions of the oversized register. Admittedly, this is hard to read, so you may want to just write out a four by four multiplication by hand to ensure that all the terms are there after fully expanding everything. Note that on windows, you would use ```_mm256_load_pd(.)``` in place of ```_mm256_loadu_pd(.)```. The same goes for ```store```. Go ahead and compile and time the code:
 
 ```
 make avx_dgmm
