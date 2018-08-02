@@ -2,6 +2,8 @@
 
 CMPS 3240 Computer Architecture: Subword parallelism in x86-64
 
+# Introduction
+
 ## Requirements
 
 1. The x86 labs assume you are using the ECE/CS departments ```odin.cs.csubak.edu``` server. ```sleipnir.cs.csubak.edu``` will not work because its processor is too old. If you use your own machine, see below for verifying that you have the required instruction set.  We will be using the AVX. It was released with Sandy bridge processors and Bulldozer processors. 
@@ -60,7 +62,7 @@ and you're good to go.
 * Observe run time improvement with DGMM
 * Implement improvements with DAXPY
 
-# Introduction 
+## Background
 
 Sub-word parallelism improves execution time of many repetitive tasks. Consider a problem where we have to add two vectors together. Each element of the vector is word length. There are registers and operations that operate on quad or greater word length. We can place four words in this over-sized register, execute an over-sized addition operation and (assuming we withheld the carry operation at the appropriate points) a single instruction can carry out four addition operations at once.
 
@@ -189,7 +191,7 @@ endfor
 ```
 Implement an unoptimized version of DAXY first, then use AVX intrinsics to speed it up. Show the instructor the improvement. The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. The compiler might automatically unroll the loop. The Makefile already does this, but make sure you're using the unoptimized flag for this part of the lab, -O0 (capital O number 0).
 
-### Discussion questions
+# Discussion
 
 Include responses to the following questions in your lab report:
 
