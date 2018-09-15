@@ -186,16 +186,38 @@ In part 2 we will use a different operation, double-precision constant times a v
 
 D = a * X + Y
 
-Where D, X and Y are vectors (not matrixes this time) of the same size, and a is a scalar. The pseudo-code looks like so:
+Where D, X and Y are vectors (not matrixes this time) of the same size, and a is a scalar. The C code looks like so:
 
+```c
+void daxpy( int m, double A, double* X, double* Y, double* result ) {
+    for ( int i = 0; i < m; i++ ) {
+        result[ i ] = A * X[ i ] + Y[ i ];
+    }
+}
 ```
-for i from 0 to length of the vectors 
-   d[i] <- a * x[i] + y[i] 
-endfor
-```
-Implement an unoptimized version of DAXY first, then use AVX intrinsics to speed it up. Show the instructor the improvement. The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. 
 
-Make sure you're using the unoptimized flag for this part of the lab, -O0 (capital O number 0). Otherwise, the compiler might unroll the loop. The Makefile already does this but be aware of it.
+Implement an unoptimized version of DAXPY first, then make sure it works. Some tips:
+
+* When using `malloc` you need to allocate only `N` space rather than `N*N` space
+* Note that DAXPY has three input arguments. The scalar fractional number, X and Y.
+
+Now use AVX intrinsics to speed it up. Some tips:
+
+* The profile for your function should look like:
+```c
+void daxpy( int m, const double* A, double* X, double* Y, double* result );
+```
+note that the `const double* A`. x86 intrinsics can broadcast a double into packed mm positions but you must pass it the pointer not the value itself.
+* You can do this in one function call and a `_mm256_storeu_pd`. It should look like:
+```
+result <- add( multiply( scalar, load from X ), load from Y )
+store( result )
+```
+check `avx_dgmm.c` for how to implement this.
+* `_mm256_broadcast_sd( const double* value )` is the function to broadcast the same scalar double precision value into four positions in an mm register. Note that you must pass it the pointer to the value, not the value itself.
+* The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. 
+
+You should get a modest improvement (<50%).
 
 # Discussion
 
