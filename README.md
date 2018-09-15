@@ -217,7 +217,20 @@ check `avx_dgmm.c` for how to implement this.
 * `_mm256_broadcast_sd( const double* value )` is the function to broadcast the same scalar double precision value into four positions in an mm register. Note that you must pass it the pointer to the value, not the value itself.
 * The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. 
 
-You should get a modest improvement (<50%).
+You should get a modest improvement. Some results that I got:
+
+```shell
+Albert@Alberts-MacBook-Pro:~/CMPS-3240-Subword-Parallelism$ time ./unopt_daxpy.out 100000000
+Running vector addition of size 100000000 x 1
+real	0m2.661s
+user	0m1.962s
+sys	0m0.692s
+Albert@Alberts-MacBook-Pro:~/CMPS-3240-Subword-Parallelism$ time ./avx_daxpy.out 100000000
+Running vector addition of size 100000000 x 1
+real	0m2.624s
+user	0m1.920s
+sys	0m0.697s
+```
 
 # Discussion
 
