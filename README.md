@@ -6,20 +6,20 @@ CMPS 3240 Computer Architecture: Subword parallelism in x86-64
 
 ## Requirements
 
-1. The x86 labs assume you are using the ECE/CS departments ```odin.cs.csubak.edu``` server. ```sleipnir.cs.csubak.edu``` will not work because its processor is too old. If you use your own machine, see below for verifying that you have the required instruction set.  We will be using the AVX. It was released with Sandy bridge processors and Bulldozer processors. 
-3. Linux. x86 intrinsic function calls and header names are different between Linux and Windows.
+1. The x86 labs assume you are using the ECE/CS departments ```odin.cs.csubak.edu``` server. ```sleipnir.cs.csubak.edu``` will not work because its processor is too old. If you use your own machine, see below for verifying that you have the required instruction set.  We will be using the AVX. It was released with Sandy Bridge processors (2009) and Bulldozer processors (2008). AMD and Intel processors have a compatible ISA. However, some Macbooks (Older than Mac OS X v10.6 Snow Leopard, 2009) use PowerPC processors and won't work for this lab.
+3. POSIX (Linux or Mac). x86 intrinsic function calls and header names are different between Linux and Windows.
 
 ## Prerequisities
 
 * Indexing and storing a 2-D array as a 1-D array
 * Vector element-wise multiplication
 * Matrix multiplication
-* Instruction-level parallelism
-* x86 intrinsics (Do the prelab)
+* Subword parallelism
+* x86 intrinsics
 
 ### Verify AVX instruction set
 
-Skip this if you are on odin. ```hello_avx.c``` will test your machine for the AVX instruction set. It initializes then subtracts two 256-bit AVX registers. The following:
+Skip this if you are on `odin.cs.csubak.edu` or if you already used `cat /proc/cpuinfo/` to verify the AVX instruction set on your processor. ```hello_avx.c``` will test your machine for the AVX instruction set. It initializes then subtracts two 256-bit AVX registers. The following:
 
 ```c
 /* Initialize the two argument vectors */
@@ -27,7 +27,7 @@ __m256 evens = _mm256_set_ps(2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0);
 __m256 odds = _mm256_set_ps(1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0);
 ```
 
-Initializes two 256-bit AVX registers by partitioning them into 8 32-bit floating point values. Note 256/32 is 8. Also note that ```evens``` is greater than ```odds``` by one, so subtrating the two should result in a vector of ones. This code:
+Initializes two 256-bit AVX registers by partitioning them into 8 32-bit floating point values. Note 256/32 is 8. Also note that ```evens``` vector values are the ``odds`` vector plus one, so subtracting the two should result in a vector of ones. This code:
 
 ```c
 /* Compute the difference between the two vectors */
@@ -55,6 +55,10 @@ your processor does not have AVX. There is nothing that can be done. Please use 
 
 and you're good to go.
 
+### Sidebar: `pd` and `ps`
+
+The x86 intrinsics often have either a `pd` or a `ps` suffix indicating the operation is double precision or single precision respectively. This is not required, but if you wanted a simple exercise for yourself modify `hello_avx.c` to be double precision rather than single precision.
+
 ## Objectives
 
 * Familiarize yourself with AVX instructions
@@ -66,7 +70,7 @@ and you're good to go.
 
 Sub-word parallelism improves execution time of many repetitive tasks. Consider a problem where we have to add two vectors together. Each element of the vector is word length. There are registers and operations that operate on quad or greater word length. We can place four words in this over-sized register, execute an over-sized addition operation and (assuming we withheld the carry operation at the appropriate points) a single instruction can carry out four addition operations at once.
 
-With x86 processors, the instruction set that allows you to do this is  AVX. It stands for advanced vector extensions. It is also known as Sandy Bridge New Extensions, so named for the Intel chip that was the first to feature it. These instructions were designed for graphics and multimedia applications that need high precision. If you do not need a large register you can load many terms into a single  register. Then, carry out many operations with a single instruction. When doing this, the carry-bit is along the appropriate word boundary. This reduces multiple addition steps to a single instruction, and you can harvest the appropriate word/result from within the over-sized AVX register.
+With x86 processors, the instruction set that allows you to do this is AVX. It stands for advanced vector extensions. It is also known as Sandy Bridge New Extensions, so named for the Intel chip that was the first to feature it. These instructions were designed for graphics and multimedia applications that need high precision. It reduces multiple addition steps to a single instruction, and you can harvest the appropriate word/result from within an over-sized AVX register.
 
 For a more in depth introduction re-read sections 3.7-3.8 in Patterson and Hennesey 5e. Once you fully understand these sections, read the following document:
 
@@ -103,7 +107,7 @@ void dgemm (int n, double* A, double* B, double* C ) {
 }
 ```
 
-This code carries out the matrix multiplication of matrixes A and B, and stores the result in C. The cost of the matrix multiplication is actually O(n^3). If you compile it, and run/time it for yourself:
+This code carries out the matrix multiplication of matrixes A and B, and stores the result in C. The cost of the matrix multiplication is  O(n^3). If you compile it, and run/time it for yourself:
 
 ```
 make unopt_dgmm
@@ -189,7 +193,9 @@ for i from 0 to length of the vectors
    d[i] <- a * x[i] + y[i] 
 endfor
 ```
-Implement an unoptimized version of DAXY first, then use AVX intrinsics to speed it up. Show the instructor the improvement. The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. The compiler might automatically unroll the loop. The Makefile already does this, but make sure you're using the unoptimized flag for this part of the lab, -O0 (capital O number 0).
+Implement an unoptimized version of DAXY first, then use AVX intrinsics to speed it up. Show the instructor the improvement. The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. 
+
+Make sure you're using the unoptimized flag for this part of the lab, -O0 (capital O number 0). Otherwise, the compiler might unroll the loop. The Makefile already does this but be aware of it.
 
 # Discussion
 
@@ -198,3 +204,6 @@ Include responses to the following questions in your lab report:
 1. If you're using 256-bit sized AVX registers to hold 64-bit sized floating point numbers, what will happen to the DGMM code if N is not a multiple of 4.
 2. What factor improvement did you achieve? Does this make sense? E.g., if using 256-bit sized AVX registers to hold 64-bit sized floating point numbers one would think that there should be a four fold improvement. What factors are preventing this?
 
+# References
+
+* `hello.avx` was taken from https://www.codeproject.com/Articles/874396/Crunching-Numbers-with-AVX-and-AVX
