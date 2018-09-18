@@ -1,6 +1,4 @@
-#include <immintrin.h>
-// If windows:
-// #include <x86intrin.h>
+#include <x86intrin.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,7 +93,7 @@ void dgemm_avx (int n, double* A, double* B, double* C ) {
                 cij = _mm256_add_pd(
                     cij, // +=
                     _mm256_mul_pd(
-                        _mm256_loadu_pd(A + i + k * n),
+                        _mm256_load_pd(A + i + k * n),
                         _mm256_broadcast_sd(B + k + j * n)
                     )
                 );
@@ -103,7 +101,7 @@ void dgemm_avx (int n, double* A, double* B, double* C ) {
                 // load loads four sucessive values
             }
             //C[ i + j * n ] = cij; replaced with
-            _mm256_storeu_pd(&C[ i + j * n ], cij);
+            _mm256_store_pd(&C[ i + j * n ], cij);
         }
     }
 }
