@@ -5,11 +5,12 @@ BINEXT=out
 
 all: hello_avx dgemmu dgemmo
 
-# Target to create out BLAS library
+# Target to create our BLAS library
 myblas.o:   myblas.c hello_avx
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Functions to test if AVX exists on a processor by running the AVX instructions.
+# Functions to test if AVX exists on a processor by running the AVX 
+# ... instructions.
 hello_avx: hello_avx.o
 	$(CC) $(CFLAGS) -o $@.$(BINEXT) $^
 hello_avx.o: hello_avx.c
