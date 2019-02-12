@@ -1,13 +1,15 @@
 # CMPS-3240-Subword-Parallelism
 
-CMPS 3240 Computer Architecture: Subword parallelism in x86-64
+An introduction to subword parallelism intrinsics with the SSE instruction set
 
 # Introduction
 
-## Requirements
+## Objectives
 
-1. The x86 labs assume you are using the ECE/CS departments ```odin.cs.csubak.edu``` server. ```sleipnir.cs.csubak.edu``` will not work because its processor is too old. If you use your own machine, see below for verifying that you have the required instruction set.  We will be using the AVX. It was released with Sandy Bridge processors (2009) and Bulldozer processors (2008). AMD and Intel processors have a compatible ISA. However, some Macbooks (Older than Mac OS X v10.6 Snow Leopard, 2009) use PowerPC processors and won't work for this lab.
-3. POSIX (Linux or Mac). x86 intrinsic function calls and header names are different between Linux and Windows.
+* Familiarize yourself with multimedia intrinsics
+* Create a program that uses SSE instructions to implement subword parallelism
+* Observe run time improvement with FGEMM
+* Implement SSE intrinsics with FAXPY
 
 ## Prerequisities
 
@@ -15,30 +17,42 @@ CMPS 3240 Computer Architecture: Subword parallelism in x86-64
 * Vector element-wise multiplication
 * Matrix multiplication
 * Subword parallelism
-* x86 intrinsics
+* x86 intrinsics section in the textbook
 
-### Verify AVX instruction set
+## Requirements
 
-Skip this if you are on `odin.cs.csubak.edu` or if you already used `cat /proc/cpuinfo/` to verify the AVX instruction set on your processor. ```hello_avx.c``` will test your machine for the AVX instruction set. It initializes then subtracts two 256-bit AVX registers. The following:
+### Software
+
+This lab requires the following software: `gcc`, `make`, `git`. `odin.cs.csubak.edu` has these already installed.
+
+### Compatability
+
+| Linux | Mac | Windows |
+| :--- | :--- | :--- |
+| Yes | Yes | Untested|
+
+This lab requires the SSE instruction set, an addition to the x86 instruction set. This was introduced with the Pentium III in 1999, so you will almost certainly have this on your Linux or Mac. The only exception is that some Macbooks (Older than Mac OS X v10.6 Snow Leopard, 2009) use PowerPC processors and won't work for this lab becaue x86 is not the same ISA as PowerPC. This lab will work for Windows but the x86 intrinsic function calls and header names are different between Linux and Windows.
+
+### Verify SSE instruction set
+
+As stated above, if your processor is older than 1999 and an x86, you will meet the minimum hardware requirements for this lab. You can probably skip this step, which verifies the SSE instruction set on your processor. ```hello_sse.c``` will test your machine for the SSE instruction set. It initializes then subtracts two 128-bit SSE registers. The following:
 
 ```c
-/* Initialize the two argument vectors */
-__m256 evens = _mm256_set_ps(2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0);
-__m256 odds = _mm256_set_ps(1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0);
+__m128 evens = _mm_set_ps(2.0, 4.0, 6.0, 8.0);
+__m128 odds = _mm_set_ps(1.0, 3.0, 5.0, 7.0);
 ```
 
-Initializes two 256-bit AVX registers by partitioning them into 8 32-bit floating point values. Note 256/32 is 8. Also note that ```evens``` vector values are the ``odds`` vector plus one, so subtracting the two should result in a vector of ones. This code:
+Initializes two 128-bit SSE registers by partitioning them into 4 32-bit floating point values. Note 128/32 is 4. Also note that ```evens``` vector values are the ``odds`` vector plus one, so subtracting the two should result in a vector of ones. This code:
 
 ```c
-/* Compute the difference between the two vectors */
-__m256 result = _mm256_sub_ps(evens, odds);
+__m128 result = _mm_sub_ps(evens, odds);
 ```
 
-Carries out the subtraction. Observe that interacting with x86 intrinsics for AVX instructions requires the use of special functions that often start with ```__m256``` for the data type and ```_mm256``` prefix for functions. Compile `hello_avx` and run it from the terminal like so:
+Carries out the subtraction. Observe that interacting with x86 intrinsics for SSE instructions requires the use of special functions that often start with ```__m128``` for the data type and ```_mm``` prefix for functions. Compile `hello_sse` and run it from the terminal like so:
 
 ```
-make hello_avx
-./hello.out
+$ make hello_sse
+gcc -Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse -o hello_sse.out hello_sse.o
 ```
 
 If you get:
@@ -47,24 +61,17 @@ If you get:
 Illegal instruction (core dumped)
 ```
 
-your processor does not have AVX. There is nothing that can be done. Please use ```odin.cs.csubak.edu``` instead. If it works, you should get:
+your processor does not have SSE. You're on a processor older than 1999, or perhaps on a Raspberry Pi that is not x86. There is nothing that can be done. Please use ```odin.cs.csubak.edu``` instead. If it works, you should get:
 
 ```
-1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000 1.000000
+1.000000 1.000000 1.000000 1.000000
 ```
 
 and you're good to go.
 
 ### Sidebar: `pd` and `ps`
 
-The x86 intrinsics often have either a `pd` or a `ps` suffix indicating the operation is double precision or single precision respectively. This is not required, but if you wanted a simple exercise for yourself modify `hello_avx.c` to be double precision rather than single precision.
-
-## Objectives
-
-* Familiarize yourself with AVX instructions
-* Create a program that uses AVX instructions to implement subword parallelism
-* Observe run time improvement with DGMM
-* Implement improvements with DAXPY
+The x86 intrinsics often have either a `pd` or a `ps` suffix indicating the operation is double precision or single precision respectively. This is not required to complete the lab, but if you wanted a simple exercise for yourself modify `hello_sse.c` to be double precision rather than single precision.
 
 ## Background
 
