@@ -183,65 +183,40 @@ sys	0m0.004s
 
 So there is nearly a three-times improvement when using SSE instructions.
 
-## Part 2 - Implement DAXPY with and without AVX
+### Summary of SSE intrinsic commands
 
-In part 2 we will use a different operation, double-precision constant times a vector plus a vector (DAXPY):
+| Command | Notes |
+| :--- | :--- |
+| `__m128 var = ...` | Force the compiler to declare a variable that lives in an MM register rather than the stack, of size 128-bits |
+| `_mm_loadu_ps( float * )` | Compiler will load four successive values from an array of `float`s. Windows version is `_mm_load_ps( float * )`. |
+| `_mm_storeu_ps( float *, __m128 )` | Same as above, except a store operation, right to left assignment. Windows version is `_mm_load_ps( float * )`. |
+| `_mm_set_ps1( float )` | Pack a MM register with the same value. Note that it takes a float, pass by value. |
+| `_mm_add_ps( __m128, __m128 )` | Add two packed single precision MMs. |
+| `_mm_mul_ps( __m128, __m128 )` | Multiply two packed single precision MMs. |
+
+## Part 2 - Implement FAXPY with and without SSE
+
+In part 2 we will use a different operation, single-precision constant times a vector plus a vector (FAXPY):
 
 D = a * X + Y
 
 Where D, X and Y are vectors (not matrixes this time) of the same size, and a is a scalar. The C code looks like so:
 
 ```c
-void daxpy( int m, double A, double* X, double* Y, double* result ) {
-    for ( int i = 0; i < m; i++ ) {
-        result[ i ] = A * X[ i ] + Y[ i ];
-    }
+void faxpyu( int n, float A, float* x, float* y, float* result ) {
+    for( int i = 0; i < n; i++ )
+        result[i] = A * x[i] + y[i];
 }
 ```
 
-Implement an unoptimized version of DAXPY first, then make sure it works. Some tips:
+and is already located in `myblas.c`. The steps are as follows.
 
-* When using `malloc` you need to allocate only `N` space rather than `N*N` space
-* Note that DAXPY has three input arguments. The scalar fractional number, X and Y.
-
-Now use AVX intrinsics to speed it up. Some tips:
-
-* The profile for your function should look like:
-```c
-void daxpy( int m, const double* A, double* X, double* Y, double* result );
-```
-note that the `const double* A`. x86 intrinsics can broadcast a double into packed mm positions but you must pass it the pointer not the value itself.
-* You can do this in one function call and a `_mm256_storeu_pd`. It should look like:
-```
-result <- add( multiply( scalar, load from X ), load from Y )
-store( result )
-```
-check `avx_dgmm.c` for how to implement this.
-* `_mm256_broadcast_sd( const double* value )` is the function to broadcast the same scalar double precision value into four positions in an mm register. Note that you must pass it the pointer to the value, not the value itself.
-* The vectors need to be very large for you to see differences in timings. I recommend at least 2^27 = 134217728. 
-
-You should get a modest improvement. Some results that I got:
-
-```shell
-Albert@Alberts-MacBook-Pro:~/CMPS-3240-Subword-Parallelism$ time ./unopt_daxpy.out 100000000
-Running vector addition of size 100000000 x 1
-real	0m2.661s
-user	0m1.962s
-sys	0m0.692s
-Albert@Alberts-MacBook-Pro:~/CMPS-3240-Subword-Parallelism$ time ./avx_daxpy.out 100000000
-Running vector addition of size 100000000 x 1
-real	0m2.624s
-user	0m1.920s
-sys	0m0.697s
-```
-
-# Discussion
-
-Include responses to the following questions in your lab report:
-
-1. If you're using 256-bit sized AVX registers to hold 64-bit sized floating point numbers, what will happen to the DGMM code if N is not a multiple of 4.
-2. What factor improvement did you achieve? Does this make sense? E.g., if using 256-bit sized AVX registers to hold 64-bit sized floating point numbers one would think that there should be a four fold improvement. What factors are preventing this?
-
+1. Implement a `faxpyu.c` benchmark to test the unoptimized version of FAXPY, add targets in `makefile` as necessary
+1. Compile and time `faxpyu.out`
+1. Implement a `faxpyo.c` in `myblas.c`
+1. Implement benchmark to test the optimized version of FAXPY, add targets in `makefile` as necessary
+1. Compile and time `faxpyu.out`
+=
 # References
 
-* `hello.avx` was taken from https://www.codeproject.com/Articles/874396/Crunching-Numbers-with-AVX-and-AVX
+* `hello_sse.c` was borrowed from https://www.codeproject.com/Articles/874396/Crunching-Numbers-with-AVX-and-AVX
