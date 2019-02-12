@@ -1,31 +1,31 @@
 CC=gcc
-CFLAGS=-Wall -mavx -std=c99 -O0
+CFLAGS=-Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse
 AVXOUT=avx_dgmm.out
 BINEXT=out
 
-all: hello_avx dgemmu dgemmo
+all: hello_sse fgemmu fgemmo
 
 # Target to create our BLAS library
-myblas.o:   myblas.c hello_avx
+myblas.o:   myblas.c hello_sse
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Functions to test if AVX exists on a processor by running the AVX 
 # ... instructions.
-hello_avx: hello_avx.o
+hello_sse: hello_sse.o
 	$(CC) $(CFLAGS) -o $@.$(BINEXT) $^
-hello_avx.o: hello_avx.c
+hello_sse.o: hello_sse.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Target to create test function for unoptimized version of DGEMM
-dgemmu: dgemmu.o myblas.o
+fgemmu: fgemmu.o myblas.o
 	$(CC) $(CFLAGS) -o $@.$(BINEXT) $^
-dgemmu.o: dgemmu.c
+fgemmu.o: fgemmu.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Target to create test function for optimized version of DGEMM
-dgemmo: dgemmo.o myblas.o
+fgemmo: fgemmo.o myblas.o
 	$(CC) $(CFLAGS) -o $@.$(BINEXT) $^
-dgemmo.o: dgemmo.c
+fgemmo.o: fgemmo.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean: 

@@ -6,7 +6,7 @@
 
 int main( int arg, char *argv[] ) {
    if( arg != 2 ) {
-     printf( "Usage: ./dgemmu.out N ... where N is the length of one side of the matrix\n"  );
+     printf( "Usage: ./fgemmu.out N ... where N is the length of one side of the matrix\n"  );
      return 0;
    }
    // Initialize random
@@ -18,15 +18,15 @@ int main( int arg, char *argv[] ) {
    const int N = atoi( argv[1] );    
    printf( "Running matrix multiplication of size %d x %d", N, N );
 
-   /* Create three N x N double precision floating point matrixes on the heap
+   /* Create three N x N single precision floating point matrixes on the heap
     * using malloc
     */
-   double *A = (double *) malloc( N * N * sizeof(double) );   // First 'A' matrix
-   double *B = (double *) malloc( N * N * sizeof(double) );   // Second 'B' matrix
-   double *C = (double *) malloc( N * N * sizeof(double) );   // Third 'C' matrix
+   float *A = (float *) malloc( N * N * sizeof(float) );   // First 'A' matrix
+   float *B = (float *) malloc( N * N * sizeof(float) );   // Second 'B' matrix
+   float *C = (float *) malloc( N * N * sizeof(float) );   // Third 'C' matrix
 
    // Carry out double-precision generic matrix multiplication 
-   dgemmu( N, A, B, C );
+   fgemmu( N, A, B, C );
 
    // Free up the memory
    free( A );

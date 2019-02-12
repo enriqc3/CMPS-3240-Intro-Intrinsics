@@ -1,4 +1,4 @@
-#include <immintrin.h>
+#include <xmmintrin.h>
 // If windows: #include <x86intrin.h>
 #include "myblas.h"
 
@@ -8,47 +8,54 @@
  * Assumes matrixes are square and of the same length ('n' is the length of 
  * one side).
  *
- * Uses AVX intrinsics.
+ * This example differs from the book because it uses SSE intrinsics rather 
+ * than AVX intrinsics. AVX intrinsics are newer and there is a risk that some
+ * users might not have it. For example, 'sleipnir.cs.csubak.edu' does not have
+ * AVX.
  */
-void dgemmo( int n, double* A, double* B, double* C ) {
+void fgemmo( int n, float* A, float* B, float* C ) {
     for ( int i = 0; i < n; i+=4) {
         for ( int j = 0; j < n; j++ ) {
             //double cij = C[ i + j * n ]; replaced with:
-            __m256d cij = _mm256_loadu_pd(C + i + j * n);
-            /* __m256d: A 256-bit mm register with 4 doubles in it. Alt-
-             * ernatively, __m256 is the type for singles and __m256i is
-             * the type for integers.
-             *
-             * _mm256_loadu_pd loads four successive values from the
-             * array into an mm register. _m256 indicates it's for
-             * 256 bit registers (AVX has even larger registers!).
-             * loadu indicates it's a load operation. load (rather
-             * than loadu) is used for Windows. _pd indicates that the
-             * operation is for double precision.
+            __m128 cij = _mm_loadu_ps(C + i + j * n);
+            /* __m128: A data type that tells the compiler to put the data in
+             * a 128-bit mm register, packed with four 32-bit single precision
+             * floating point values. __m128d is the type for packing two 64-bit
+             * double precision floating point values. __m128i is the type of 
+             * packing four 32-bit integers. This notation is also used for 
+             * prefixing the operations that use these types. 
+             * 
+             * _mm_loadu_ps loads four successive values from the array into
+             * an mm register. loadu indicates it's a load operation. load
+             * (rather than loadu) is used for Windows. _ps indicates that the
+             * operation is for single precision. _pd indicates an operation
+             * that is double precision.
              */
 
             // Below carries out cij += A[i][k] * B[k][j]:
             for ( int k = 0; k < n; k++) {
+		float d = B[k+j*n];
                 // cij += A[ i + k * n ] * B[ k + j * n ];
                 // ... replaced with:
-                cij = _mm256_add_pd(
+                cij = _mm_add_ps(
                     cij, // +=
-                    _mm256_mul_pd(
-                        _mm256_loadu_pd(A + i + k * n),
-                        _mm256_broadcast_sd(B + k + j * n)
+                    _mm_mul_ps(
+                        _mm_loadu_ps(A + i + k * n),
+                        _mm_set_ps1(d)
                     )
                 );
-                // broadcast loads a scalar into four positions
-                // load loads four sucessive values
+                /* _mm128_set_ps1 broadcasts a single value to four positions
+                 * in a mm register. 
+                 */
             }
             //C[ i + j * n ] = cij; replaced with
-            _mm256_storeu_pd(&C[ i + j * n ], cij);
+            _mm_storeu_ps(&C[ i + j * n ], cij);
         }
     }
 }
 
 // Unoptimized version
-void dgemmu( int n, double* A, double* B, double* C ) {
+void fgemmu( int n, float* A, float* B, float* C ) {
     for ( int i = 0; i < n; i++ ) {
         for ( int j = 0; j < n; j++ ) {
             double cij = C[ i + j * n ]; 
@@ -63,7 +70,7 @@ void dgemmu( int n, double* A, double* B, double* C ) {
 }
 
 // DAXPY operation. Not optimized with AVX intrinsics.
-void daxpyu( int n, double A, double* x, double* y, double* result ) {
+void faxpyu( int n, float A, float* x, float* y, float* result ) {
     for( int i = 0; i < n; i++ )
         result[i] = A * x[i] + y[i];
 } 
