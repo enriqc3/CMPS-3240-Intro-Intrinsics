@@ -73,119 +73,115 @@ and you're good to go.
 
 The x86 intrinsics often have either a `pd` or a `ps` suffix indicating the operation is double precision or single precision respectively. This is not required to complete the lab, but if you wanted a simple exercise for yourself modify `hello_sse.c` to be double precision rather than single precision.
 
+### Sidebar: What happened to AVX?
+
+If you read the book, you'll notice that they are using the AVX instruction set. The AVX instruction set was released with the Intel Sandy Bridge and AMD Bulldozer chips, and there is a real danger that the end-user will not have these ISAs yet. This is why this lab uses SSE instead. If you were to implement these AVX instructions you would need to have additional code to check if the instruction sets exist at run time, and that topic is beyond the scope of this lab.
+
 ## Background
 
 Sub-word parallelism improves execution time of many repetitive tasks. Consider a problem where we have to add two vectors together. Each element of the vector is word length. There are registers and operations that operate on quad or greater word length. We can place four words in this over-sized register, execute an over-sized addition operation and (assuming we withheld the carry operation at the appropriate points) a single instruction can carry out four addition operations at once.
 
-With x86 processors, the instruction set that allows you to do this is AVX. It stands for advanced vector extensions. It is also known as Sandy Bridge New Extensions, so named for the Intel chip that was the first to feature it. These instructions were designed for graphics and multimedia applications that need high precision. It reduces multiple addition steps to a single instruction, and you can harvest the appropriate word/result from within an over-sized AVX register.
+This is not a new concept. The SSE instructio nset was released around 1999 with the Intel Pentium III. These instructions are designed for graphics and multimedia applications that need high precision. Most applications do not need to run such high-precision operations, and instead use SIMD operations to carry out multiple low precision operations with a single instruction, assuming you harvest the appropriate word/result from within an over-sized MM register.
 
 For a more in depth introduction re-read sections 3.7-3.8 in Patterson and Hennesey 5e. Once you fully understand these sections, read the following document:
 
-* https://www.codeproject.com/Articles/874396/Crunching-Numbers-with-AVX-and-AVX
-
-For a full list of AVX instructions see:
+For a full list of all SIMD instructions see:
 
 * https://software.intel.com/sites/landingpage/IntrinsicsGuide/
 
 # Approach
 
-This lab consists of two parts: (1) Run the avx_dgemm.c and avx_unopt.c code and see how much faster it is with AVX. (2) Apply what you've learned with part 1 to the DAXPY operation.
+This lab consists of three parts: (1) Look at `myblas.c` to see an example of how SSE intrinsics are implemented, (2) run `fgemmu.out` and `fgemmo.out` to see the improvement with using SIMD, and (3) apply what you've learned to implement `fdaxpy.out` on your own. 
 
-## Part 1 - Understand some AVX instructions with DGMM
+## Part 1 - Understand some SSE instructions with FGEMM
 
-DGMM stands for double precision generic matrix multiplication. I will not go into a matrix multiplication here, you should be familiar with it. Suffice to say when multiplying two matrixes together, there are many, *many* addition operations. ```unopt_dgmm.c``` contains C code to multiply two matrixes together. The matrixes are initialized dynamically on the heap using ```malloc```, and the size of the square matrixes is given as a command line argument. 
+FGEMM stands for single precision generic matrix multiplication (F for `float`. I will not go into a matrix multiplication here, you should be familiar with it. Suffice to say when multiplying two matrixes together, there are many, *many* addition operations. `fgemmu()` and `fgemmo()` in the file `myblas.c` contain C code to multiply two matrixes together. `fgemmu.c` and `fgemmo.c` contain test code to initialize the matrixes dynamically on the heap using ```malloc```, and the size of the square matrixes is given as a command line argument. 
 
 ### Unoptimized code
 
-Consider the following code, which was taken from the  Patterson and Hennesey textbook:
+Consider the following code, which is a modified version of the example given in the  Patterson and Hennesey textbook:
 
 ```c
-void dgemm (int n, double* A, double* B, double* C ) {
-   for ( int i = 0; i < n; i++ ) {
-      for ( int j = 0; j < n; j++ ) {
-         double cij = C[ i + j * n ];
-         // cij += A[i][k] * B[k][j]
-         for ( int k = 0; k < n; k++ )
-            cij += A[ i + k * n ] * B[ k + j * n ];
-
-         C[ i + j * n ] = cij;
-      }
-   }
+void fgemmu( int n, float* A, float* B, float* C ) {
+    for ( int i = 0; i < n; i++ ) {
+        for ( int j = 0; j < n; j++ ) {
+            double cij = C[ i + j * n ];
+            for ( int k = 0; k < n; k++) {
+                cij += A[ i + k * n ] * B[ k + j * n ];
+            }
+            C[ i + j * n ] = cij;
+        }
+    }
 }
 ```
 
-This code carries out the matrix multiplication of matrixes A and B, and stores the result in C. The cost of the matrix multiplication is  O(n^3). If you compile it, and run/time it for yourself:
+This code carries out the matrix multiplication of matrixes A and B, and stores the result in C. The cost of the matrix multiplication is  O(n^3). Compile it, and run/time it for yourself:
 
 ```
-make unopt_dgmm
-time ./unopt_dgmm.out 1024
+$ make fgemmu
+gcc -Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse -o hello_sse.out hello_sse.o
+gcc -Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse -c myblas.c -o myblas.o
+gcc -Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse -o fgemmu.out fgemmu.o myblas.o
+$ time ./fgemmu.out 1024
 ```
-you should get something along the lines of:
+On the local machines in 315 I get:
 
 ```
 Running matrix multiplication of size 1024 x 1024
-real	0m5.912s
-user	0m5.900s
-sys	0m0.008s
+real	0m9.020s
+user	0m9.016s
+sys	0m0.004s
 ```
 
-Even on the beefy odin server it takes almost six seconds to multiply two 1024 x 1024 sized matrixes.
+The machines in 315 are older, but they are indeed workstation grade PCs. Even so this is a slow operation for these machines.
 
 ### AVX instructions
 
-Now consider ```avx_dgmm.c```. The first thing to notice is:
+Go back into `myblas.c`. We will now consider `fdgemmo()`, which is an optimized version of `fdgemmu()`. The first thing to notice is:
 
 ```c
-#include <immintrin.h>
+#include <xmmintrin.h>
 ```
 
-This header file includes the compiler intrinsics for the AVX instruction set. The text calls for ```#include <x86intrin.h>``` because it is written for Windows. If on Linux, use the above. Consider the following code:
+This header file includes the compiler intrinsics for the SIMD instruction sets. The text calls for ```#include <x86intrin.h>``` because it is written for Windows. If on Linux, use the above. Consider the following code:
 
 ```c
-void dgemm_avx (int n, double* A, double* B, double* C ) {
-   for ( int i = 0; i < n; i+=4) {
-      for ( int j = 0; j < n; j++ ) {
-         //double cij = C[ i + j * n ];
-          //replaced with
-         __m256d cij = _mm256_loadu_pd(C + i + j * n);
+void fgemmo( int n, float* A, float* B, float* C ) {
+    for ( int i = 0; i < n; i+=4) {
+        for ( int j = 0; j < n; j++ ) {
+            __m128 cij = _mm_loadu_ps(C + i + j * n);
+            for ( int k = 0; k < n; k++) {
+                float d = B[k+j*n];
+                cij = _mm_add_ps(
+                    cij, // +=
+                    _mm_mul_ps(
+                        _mm_loadu_ps(A + i + k * n),
+                        _mm_set_ps1(d)
+                    )
+                );
 
-         // Below, carries out cij += A[i][k] * B[k][j]
-         for ( int k = 0; k < n; k++) {
-             //cij += A[ i + k * n ] * B[ k + j * n ];
-             //replaced with
-             cij = _mm256_add_pd(
-                 cij,
-                _mm256_mul_pd(
-                    _mm256_loadu_pd(A + i + k * n),
-                    _mm256_broadcast_sd(B + k + j * n)
-                )
-            );
-         }
-         //C[ i + j * n ] = cij;
-         //replaced with
-        _mm256_storeu_pd(&C[ i + j * n ], cij);         
-      }
-   }
+            }
+            _mm_storeu_ps(&C[ i + j * n ], cij);
+        }
+    }
 }
 ```
 
-```__m256d cij``` creates a variable ```cij``` and associates it with a 256-bit double precision floating point number. ```_mm256_loadu_pd(.)``` dereferences ```C[ i + j * n ]``` and stores the result in ```cij```. ```_mm256_add_pd(cij,.)``` takes the place of ```cij +=...``` in the unoptimized code. ```_mm256_loadu_pd(.)``` loads four successive values, whereas ```_mm256_broadcast_sd(.)``` repeats the same value into many positions of the oversized register. Admittedly, this is hard to read, so you may want to just write out a four by four multiplication by hand to ensure that all the terms are there after fully expanding everything. Note that on windows, you would use ```_mm256_load_pd(.)``` in place of ```_mm256_loadu_pd(.)```. The same goes for ```store```. Go ahead and compile and time the code:
+`__m128 cij` creates a variable `cij` and associates it with a 128-bit double precision floating point number. `_mm_loadu_ps` dereferences `C[ i + j * n ]` and stores the result in `cij`. `_mm_add_ps(cij,.)` takes the place of `cij +=...` in the unoptimized code. `_mm_loadu_ps(.)` loads four successive values, whereas `_mm_set_ps1(.)` repeats the same scalar value into many positions of the oversized register. Admittedly, this is hard to read, so you may want to just write out a four by four multiplication by hand to ensure that all the terms are there after fully expanding everything. Note that on windows, you would use `_mm_load_pd(.)` in place of `_mm_loadu_pd(.)`. The same goes for `store`. The reason for this is that POSIX and Windows systems organize words differently in memory. Go ahead and compile and time the code:
 
 ```
-make avx_dgmm
-time ./avx_dgmm.out 1024
-```
-
-I got the following times:
-
-```
+$ make fgemmo
+gcc -Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse -o hello_sse.out hello_sse.o
+gcc -Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse -c myblas.c -o myblas.o
+gcc -Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse -o fgemmo.out fgemmo.o myblas.o
+$ time ./fgemmo.out 1024
 Running matrix multiplication of size 1024 x 1024
-real	0m2.834s
-user	0m2.812s
-sys	0m0.020s
+real	0m2.738s
+user	0m2.734s
+sys	0m0.004s
 ```
 
-So there is nearly a two-times improvement when using AVX instructions.
+So there is nearly a three-times improvement when using SSE instructions.
 
 ## Part 2 - Implement DAXPY with and without AVX
 
