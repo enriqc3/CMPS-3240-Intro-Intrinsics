@@ -1,4 +1,4 @@
-# CMPS-3240-Subword-Parallelism
+# CMPS-3240-Intro-Intrinsics
 
 An introduction to subword parallelism intrinsics with the SSE instruction set
 
