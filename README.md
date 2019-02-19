@@ -215,7 +215,7 @@ and is already located in `myblas.c`. The steps are as follows.
 1. Implement a `faxpyo.c` in `myblas.c`
 1. Implement benchmark to test the optimized version of FAXPY, add targets in `makefile` as necessary
 1. Compile and time `faxpyu.out`
-=
+
 # References
 
 * `hello_sse.c` was borrowed from https://www.codeproject.com/Articles/874396/Crunching-Numbers-with-AVX-and-AVX
