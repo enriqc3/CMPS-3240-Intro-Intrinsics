@@ -1,6 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -std=c99 -O0 -msse -msse2 -msse3 -mfpmath=sse
-AVXOUT=avx_dgmm.out
+CFLAGS=-Wall -std=c99 -O0 -msse
 BINEXT=out
 
 all: hello_sse fgemmu fgemmo
@@ -9,8 +8,7 @@ all: hello_sse fgemmu fgemmo
 myblas.o:   myblas.c hello_sse
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Functions to test if AVX exists on a processor by running the AVX 
-# ... instructions.
+# Functions to test if SSE exists on a processor by running SSE instructions.
 hello_sse: hello_sse.o
 	$(CC) $(CFLAGS) -o $@.$(BINEXT) $^
 hello_sse.o: hello_sse.c

@@ -1,4 +1,4 @@
-#include <xmmintrin.h>
+#include <immintrin.h>
 // If windows: #include <x86intrin.h>
 #include "myblas.h"
 
