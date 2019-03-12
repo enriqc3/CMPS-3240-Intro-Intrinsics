@@ -237,11 +237,10 @@ void faxpyu( int n, float A, float* x, float* y, float* result ) {
 
 and is already located in `myblas.c`. The steps are as follows.
 
-1. Implement a `faxpyu.c` benchmark to test the unoptimized version of FAXPY, add targets in `makefile` as necessary
+1. Implement `faxpyu()` in `myblas.c`, implement `faxpyu.c` benchmark to test the unoptimized version of FAXPY, add targets in `makefile` as necessary
 1. Compile and time `faxpyu.out`
-1. Implement a `faxpyo.c` in `myblas.c`
-1. Implement benchmark to test the optimized version of FAXPY, add targets in `makefile` as necessary
-1. Compile and time `faxpyu.out`
+1. Implement `faxpyo()` in `myblas.c`, implement a separate `faxpyo.c` benchmark, makefile targets etc.
+1. Compile and time `faxpyo.out`
 
 # References
 
